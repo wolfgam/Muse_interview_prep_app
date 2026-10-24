@@ -1,20 +1,36 @@
 # Roadmap
 
-## v1 (current)
+## v1
 - 24-question bank: About You, Behavioral, Problem Solving, Coding & Technical
 - Framework, strong-answer points, pitfalls, next-time tip, and follow-ups per question
 - 2-minute timer, editable answer drafts, 3-part self-scoring rubric
 - Mock interview mode (5 random questions), filters, search, random question
 - Progress saved in browser localStorage only
 
+## v1.1 (current) — MLE / Data Scientist specialization, infra domain
+- Decision answered by owner: interview questions for **MLE** and
+  **Data Scientist** roles, with **ML infrastructure** as the domain area
+- +36 questions (12 per new category):
+  - **MLE** — distributed training, low-latency serving, feature stores,
+    data leakage, GPU utilization, experiment tracking/model registry,
+    offline+online evaluation, recommender infra, OOM debugging,
+    inference cost reduction, continuous training
+  - **Data Scientist** — experimentation platform design, metric-drop
+    investigation, sample size/power, quasi-experiments for infra changes,
+    metrics & logging design, A/B trade-off calls, anomaly detection on
+    infra metrics, warehouse trust, peeking/sequential testing,
+    valuing infra improvements, ML health dashboards, biased logged data
+  - **ML Infrastructure** — ML platform design, GPU cluster scheduling,
+    training data pipelines, multi-tenant inference platform, ML
+    observability, model+data versioning, streaming features, infra cost,
+    testing infra changes, CI/CD for ML, privacy/compliance, pipeline on-call
+- Category filter now includes MLE, Data Scientist, ML Infrastructure
+
 ## Next candidates
-- [ ] Role-specific tracks (software engineering, product, data, general job interview, college interview)
-- [ ] Larger bank per category, with difficulty progression
+- [ ] Mock mode by track: an "MLE loop" / "DS loop" preset (system design + coding + behavioral mix)
+- [ ] Coding drills for MLE/DS (SQL, Python/pandas, ML coding) with worked solutions
+- [ ] Deeper infra system-design set: LLM serving, vector search infra, real-time ranking
 - [ ] Record-and-playback practice (audio, on-device only)
 - [ ] Export answers as a printable prep sheet
 - [ ] Spaced review: resurface low-scored questions first
 - [ ] GitHub Pages deployment from `main`
-
-## Decisions needed from the owner
-- Which interview is this primarily for? (job / internship / college / other)
-- Which role or field should the question bank specialize in first?

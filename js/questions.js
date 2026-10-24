@@ -415,5 +415,623 @@ const QUESTIONS = [
     ],
     nextTime: "End with the thing you're learning right now and why. Present tense beats a list of past courses.",
     followUps: ["What have you learned most recently?", "How do you choose what to learn next?"]
+  },
+
+  // ---------- MLE (Machine Learning Engineering) — infra domain ----------
+  {
+    id: "mle-1", category: "MLE", difficulty: "Hard",
+    prompt: "Design a distributed training system for a model that no longer fits or trains fast enough on one machine.",
+    framework: "Clarify (model size, data size, budget) → Parallelism strategy → Checkpointing & fault tolerance → Measure throughput.",
+    strongAnswer: [
+      "Asks model size, dataset size, and cluster budget before choosing a strategy",
+      "Distinguishes data parallelism, tensor/pipeline parallelism, and ZeRO-style sharding — and when each wins",
+      "Includes checkpointing, spot/preemptible instance handling, and how a failed worker recovers without restarting the job"
+    ],
+    pitfalls: [
+      "Naming a framework (PyTorch DDP/FSDP, DeepSpeed) with no reasoning about communication vs compute",
+      "Ignoring data loading — GPUs idle waiting on the dataloader is the classic bottleneck",
+      "No fault-tolerance story: one node dies, the whole multi-day job dies"
+    ],
+    nextTime: "Lead with the bottleneck math: model size vs GPU memory, and tokens/examples per second you need. The parallelism choice should fall out of those two numbers.",
+    followUps: ["How do you debug training throughput suddenly dropping 30%?", "Data parallel or model parallel here — why?"]
+  },
+  {
+    id: "mle-2", category: "MLE", difficulty: "Hard",
+    prompt: "Design a low-latency, high-throughput model serving system for a production model.",
+    framework: "Requirements (p99 latency, QPS, model size) → Serving stack → Batching & caching → Rollout & rollback.",
+    strongAnswer: [
+      "Starts from numbers: p99 latency budget, peak QPS, model size, hardware available",
+      "Uses dynamic batching, caching, and where useful quantization/distillation — with the accuracy trade-off stated",
+      "Covers deployment safety: shadow mode, canary, automatic rollback on latency or quality regressions"
+    ],
+    pitfalls: [
+      "Designing for average latency instead of p99",
+      "Batching everything — batching helps throughput but hurts tail latency for single requests",
+      "No plan for a bad model version reaching 100% of traffic"
+    ],
+    nextTime: "Draw the latency budget line by line (network, feature fetch, inference, post-processing). Interviewers grade the budget, not the boxes.",
+    followUps: ["How do you handle a traffic spike of 10x?", "CPU or GPU serving for this model — how do you decide?"]
+  },
+  {
+    id: "mle-3", category: "MLE", difficulty: "Medium",
+    prompt: "Your model's online performance dropped but offline metrics look fine. How do you debug it?",
+    framework: "Verify data first → Train/serve skew → Distribution shift → Label/feedback loop.",
+    strongAnswer: [
+      "Checks the serving data pipeline before the model: schema changes, null rates, feature freshness",
+      "Hunts training-serving skew: features computed differently offline vs online",
+      "Compares live input distribution to training distribution (drift), and checks delayed/corrupted labels"
+    ],
+    pitfalls: [
+      "Retraining immediately without diagnosing — you may bake in the bug",
+      "Trusting offline metrics computed on the same broken pipeline",
+      "Forgetting feedback loops: the model's own outputs changing future training data"
+    ],
+    nextTime: "Memorize the order: data → features → distribution → labels → model last. Saying that order out loud is most of this answer.",
+    followUps: ["What monitoring would have caught this earlier?", "How do you detect feature skew systematically?"]
+  },
+  {
+    id: "mle-4", category: "MLE", difficulty: "Hard",
+    prompt: "Design a feature store for a team training and serving many models.",
+    framework: "Requirements → Offline store → Online store → Point-in-time correctness & consistency.",
+    strongAnswer: [
+      "Separates offline (training, batch, high throughput) from online (serving, low latency) storage",
+      "Guarantees point-in-time correctness so training never uses future information (label leakage)",
+      "Uses one feature definition/transformation for both training and serving to prevent skew"
+    ],
+    pitfalls: [
+      "Two implementations of the same feature, one per side — guaranteed skew",
+      "Ignoring point-in-time joins; leakage inflates offline metrics and collapses online",
+      "No feature freshness, lineage, or ownership story"
+    ],
+    nextTime: "Say 'point-in-time correctness' and 'single transformation, two materializations' early — those two phrases are the core of any feature store answer.",
+    followUps: ["How do you backfill a feature for two years of history?", "How do you monitor feature freshness?"]
+  },
+  {
+    id: "mle-5", category: "MLE", difficulty: "Medium",
+    prompt: "How do you prevent data leakage in a training pipeline?",
+    framework: "Time-based splits → Feature audit → Pipeline enforcement → Leakage tests.",
+    strongAnswer: [
+      "Uses time-based train/test splits for time-ordered data, not random splits",
+      "Audits features for anything computed after the prediction moment or derived from the label",
+      "Builds enforcement into the pipeline: point-in-time joins, feature allowlists, automated checks"
+    ],
+    pitfalls: [
+      "Random splits on time-series data",
+      "Preprocessing (scalers, imputers, target encoding) fit on the full dataset before splitting",
+      "Relying on humans remembering — no automated leakage check"
+    ],
+    nextTime: "Give one real leakage example (a feature that secretly encodes the label) — one concrete story beats a list of rules.",
+    followUps: ["How would leakage show up in your metrics?", "Where in the pipeline do you fit preprocessing, exactly?"]
+  },
+  {
+    id: "mle-6", category: "MLE", difficulty: "Medium",
+    prompt: "GPU utilization on your training cluster is 35%. How do you find and fix the waste?",
+    framework: "Profile first → Data pipeline → Kernel/compute → Scheduling & packing.",
+    strongAnswer: [
+      "Profiles before guessing: dataloader throughput, host-to-device transfer, kernel time, communication waits",
+      "Fixes input pipeline: prefetching, caching, parallel loading, better data formats (e.g. sharded/columnar)",
+      "Improves scheduling: packing jobs, right-sizing requests, preemption policies so GPUs don't sit reserved-but-idle"
+    ],
+    pitfalls: [
+      "Buying more GPUs as the first answer",
+      "Confusing GPU allocated with GPU utilized",
+      "Optimizing model code when the dataloader was the bottleneck"
+    ],
+    nextTime: "Quote the diagnostic order: input → transfer → compute → communication → scheduling. A measured 35% with a profile beats a guessed fix.",
+    followUps: ["How do you measure true utilization?", "What do you do about many small jobs fragmenting the cluster?"]
+  },
+  {
+    id: "mle-7", category: "MLE", difficulty: "Hard",
+    prompt: "Design an experiment-tracking and model-registry system so any production model can be reproduced exactly.",
+    framework: "Track everything (code, data, config, env) → Version models → Promote with gates → Audit trail.",
+    strongAnswer: [
+      "Logs code commit, data version/snapshot, hyperparameters, environment, and random seeds for every run",
+      "Model registry with stages (staging/production/archived) and approval/evaluation gates for promotion",
+      "Ties each production prediction period back to the exact artifact, data, and code that produced the model"
+    ],
+    pitfalls: [
+      "Tracking hyperparameters but not the data version — the most common reproducibility hole",
+      "Manual promotion with no evaluation gate",
+      "'Reproducible' meaning rerunning a notebook from memory"
+    ],
+    nextTime: "List the five things you log without pausing: code, data, config, environment, seed. Completeness of that list is the answer.",
+    followUps: ["How do you version datasets at scale?", "A model in production can't be reproduced — where do you look first?"]
+  },
+  {
+    id: "mle-8", category: "MLE", difficulty: "Medium",
+    prompt: "How do you evaluate a model change before it reaches all users? Cover offline and online evaluation.",
+    framework: "Offline gates → Shadow → Canary/A/B → Guardrails & rollback criteria.",
+    strongAnswer: [
+      "Offline: held-out and slice-based evaluation, especially on segments that matter or historically fail",
+      "Online: shadow deployment, then canary or A/B with pre-registered success and guardrail metrics",
+      "Defines rollback criteria before launch, not during an incident"
+    ],
+    pitfalls: [
+      "Offline accuracy up, shipping it — with no online validation",
+      "An A/B test with no guardrails (latency, revenue, safety metrics)",
+      "Peeking at results and stopping the test when it looks good"
+    ],
+    nextTime: "Structure the answer as a funnel with a gate at each stage and a named metric per gate. Stage-gates are what infra-minded interviewers want.",
+    followUps: ["Offline and online results disagree — which do you trust?", "How long do you run the canary?"]
+  },
+  {
+    id: "mle-9", category: "MLE", difficulty: "Hard",
+    prompt: "Design the training and serving infrastructure for a recommendation system that must respond in under 100 ms.",
+    framework: "Candidate generation → Ranking → Feature infra → Latency budget → Freshness trade-offs.",
+    strongAnswer: [
+      "Two-stage design: fast candidate retrieval (e.g. ANN index) then a heavier ranking model on a small set",
+      "Precomputes what's stable (embeddings, user features) and computes at request time only what's cheap and fresh",
+      "Budgets the 100 ms across retrieval, feature fetch, ranking, and business rules — with fallbacks when a layer times out"
+    ],
+    pitfalls: [
+      "One giant model scoring the whole catalog per request",
+      "No fallback: a slow feature store takes the whole recommender down",
+      "Ignoring freshness: embeddings updated monthly for a system selling timely content"
+    ],
+    nextTime: "Start with the latency budget split across stages. If your stages don't add up to under 100 ms, the design isn't done.",
+    followUps: ["How do you keep embeddings fresh?", "Cold start for a new user or item — how does the infra handle it?"]
+  },
+  {
+    id: "mle-10", category: "MLE", difficulty: "Medium",
+    prompt: "Training keeps running out of GPU memory or crashing mid-run. Walk me through your debugging.",
+    framework: "Reproduce & isolate → Memory accounting → Data-dependent causes → Harden the job.",
+    strongAnswer: [
+      "Accounts for memory: parameters, gradients, optimizer state, activations — and which one actually blew up",
+      "Checks data-dependent causes: an unusually long sequence or large batch element in one shard",
+      "Hardens the job: activation checkpointing, gradient accumulation, memory profiling in CI, checkpoint-resume on failure"
+    ],
+    pitfalls: [
+      "Just shrinking the batch size without understanding where memory went",
+      "Missing optimizer state — with Adam it can be 2x the parameters",
+      "A crash 10 hours in with no checkpointing, treated as bad luck rather than a system flaw"
+    ],
+    nextTime: "Do the memory math out loud for a concrete model size (params × bytes, ×4 for Adam training). Interviewers love hearing the arithmetic.",
+    followUps: ["What does activation checkpointing trade away?", "How do you catch this before the big run?"]
+  },
+  {
+    id: "mle-11", category: "MLE", difficulty: "Medium",
+    prompt: "How would you reduce inference cost by 50% without a noticeable quality drop?",
+    framework: "Measure the cost drivers → Cheaper model (distill/quantize/prune) → Cheaper system (batch/cache/route) → Verify quality per slice.",
+    strongAnswer: [
+      "Profiles where cost actually is: model size, request volume, low utilization, over-provisioning",
+      "Model levers: quantization (FP16/INT8), distillation to a smaller model, pruning — each validated per segment, not just on average",
+      "System levers: request caching, dynamic batching, routing easy traffic to a small model and hard traffic to the big one"
+    ],
+    pitfalls: [
+      "Quantizing and checking only the global metric — a minority slice silently tanks",
+      "Cutting capacity so p99 latency explodes at peak",
+      "No quality budget defined: 'noticeable' was never made measurable"
+    ],
+    nextTime: "Pair every cost lever with its quality check in the same sentence. Cost answers without quality guards sound reckless; quality answers without cost sound naive.",
+    followUps: ["Your quantization hurts one user segment — what now?", "How do you decide the routing threshold?"]
+  },
+  {
+    id: "mle-12", category: "MLE", difficulty: "Hard",
+    prompt: "Design a continuous training (CT) pipeline that retrains and redeploys a model safely on a schedule and on drift triggers.",
+    framework: "Triggers → Data validation → Training & eval gates → Progressive rollout → Monitoring & auto-rollback.",
+    strongAnswer: [
+      "Defines triggers: schedule, data volume, and performance/drift signals — with data validation before any training starts",
+      "Automated evaluation gates comparing candidate vs current production model on fresh held-out data and key slices",
+      "Progressive rollout with automatic rollback, and a human approval option for high-risk models"
+    ],
+    pitfalls: [
+      "Auto-deploying whatever training produces, no gate",
+      "Training on poisoned/drifted data because validation was skipped",
+      "No way to answer 'which data trained the model live right now?'"
+    ],
+    nextTime: "Draw it as CI/CD for models: data checks are the unit tests, eval gates are the integration tests, canary is the staged deploy. That analogy organizes the whole answer.",
+    followUps: ["Drift triggers fire weekly — is the model or the world changing?", "How do you stop a bad data day from becoming a bad model?"]
+  },
+
+  // ---------- Data Scientist — infra domain ----------
+  {
+    id: "ds-1", category: "Data Scientist", difficulty: "Hard",
+    prompt: "Design an experimentation platform for a company running hundreds of A/B tests a month.",
+    framework: "Assignment → Logging → Metrics pipeline → Analysis guardrails (SRM, peeking, multiple testing).",
+    strongAnswer: [
+      "Consistent, sticky randomization (hash of user ID + experiment ID) with layers so experiments don't collide",
+      "Exposure logging separate from assignment, so analysis counts only users who actually saw the treatment",
+      "Automated guardrails: sample-ratio-mismatch (SRM) checks, pre-computed metrics, corrections for peeking/multiple comparisons"
+    ],
+    pitfalls: [
+      "Randomizing per request instead of per user — users flip between variants",
+      "Analyzing assigned users rather than exposed users",
+      "No SRM check: a broken assignment quietly invalidates the whole test"
+    ],
+    nextTime: "Name SRM unprompted and explain what you'd do when it fires (stop, find the bug, restart). It's the highest-signal detail in platform answers.",
+    followUps: ["How do you handle overlapping experiments interacting?", "Ramp from 1% to 50% — what do you watch at each step?"]
+  },
+  {
+    id: "ds-2", category: "Data Scientist", difficulty: "Medium",
+    prompt: "A core product metric dropped 15% overnight. How do you investigate?",
+    framework: "Verify the data → Segment → Timeline & changes → External factors.",
+    strongAnswer: [
+      "First rules out a logging/pipeline break: did the metric definition, event, or ETL change?",
+      "Segments by platform, country, version, new vs existing users to localize the drop",
+      "Aligns the drop's start time with deploys, releases, outages, and external events before theorizing about user behavior"
+    ],
+    pitfalls: [
+      "Jumping to a user-behavior story before checking the data pipeline",
+      "Looking only at the aggregate — Simpson's paradox hides the real segment",
+      "No timestamp alignment with releases and incidents"
+    ],
+    nextTime: "Say your first check out loud: 'Is this real, or is it the data?' Infra-fluent data scientists always verify the pipeline before the product.",
+    followUps: ["The drop is only on one platform — next step?", "How do you decide when it's an incident vs a real trend?"]
+  },
+  {
+    id: "ds-3", category: "Data Scientist", difficulty: "Medium",
+    prompt: "How do you calculate the sample size and duration for an A/B test on a conversion metric?",
+    framework: "Baseline & MDE → Power/significance → Sample formula → Duration & practical checks.",
+    strongAnswer: [
+      "Starts from baseline rate, minimum detectable effect (MDE), power (typically 80%), and significance (typically 5%)",
+      "Converts required sample per variant into calendar time using real daily traffic — and checks day-of-week cycles",
+      "States the trade-off: smaller MDE means quadratically more sample; business must choose what's worth detecting"
+    ],
+    pitfalls: [
+      "Quoting n without tying it to the baseline rate and MDE",
+      "Running less than a full weekly cycle for a weekday-skewed product",
+      "Ignoring that low-traffic surfaces simply cannot detect small effects — and pretending otherwise"
+    ],
+    nextTime: "Work one tiny numeric example aloud (baseline 10%, MDE 1pt). Being able to estimate order-of-magnitude n on the spot is the skill being tested.",
+    followUps: ["Traffic is half what you planned — extend, accept less power, or stop?", "How do you handle novelty/primacy effects in duration?"]
+  },
+  {
+    id: "ds-4", category: "Data Scientist", difficulty: "Hard",
+    prompt: "You can't run an A/B test on an infrastructure change (e.g. a new serving stack). How do you measure its impact?",
+    framework: "Quasi-experiments: switchbacks / geo / diff-in-diff / synthetic control → Confounders → Sensitivity.",
+    strongAnswer: [
+      "Picks a design that fits the constraint: switchback (time-sliced) tests for shared-system changes, geo experiments, or difference-in-differences",
+      "Names the identifying assumption for the chosen method and how they'd sanity-check it (parallel trends, placebo periods)",
+      "Runs sensitivity/placebo analyses instead of reporting one fragile number"
+    ],
+    pitfalls: [
+      "Before/after comparison presented as causal, ignoring trends and seasonality",
+      "Diff-in-diff with no parallel-trends check",
+      "Forgetting interference: an infra change often affects control and treatment together, which is why normal A/B fails"
+    ],
+    nextTime: "Lead with why A/B fails here (interference / can't randomize a shared system), then pick the design. Naming the obstacle earns the method.",
+    followUps: ["How do switchbacks handle carryover effects?", "Your geo test and diff-in-diff disagree — which do you believe?"]
+  },
+  {
+    id: "ds-5", category: "Data Scientist", difficulty: "Medium",
+    prompt: "Design the metrics and logging for a new ML-powered feature so its impact can actually be measured.",
+    framework: "Decision first → Primary + guardrail metrics → Event taxonomy → Joinability to model outputs.",
+    strongAnswer: [
+      "Starts from the decision the metrics must support (ship / iterate / kill), then picks one primary metric and explicit guardrails",
+      "Defines a clean event taxonomy (impression, exposure to model output, action, outcome) with stable IDs",
+      "Logs model version, score, and features shown per impression so analysis can join outcomes to exactly what the model did"
+    ],
+    pitfalls: [
+      "Logging clicks but not impressions — no denominator, no rate",
+      "No model version in the logs, so a regression can't be attributed to a release",
+      "Twenty 'primary' metrics and no guardrails"
+    ],
+    nextTime: "Stress the join: user, impression, model version, outcome — if those four can't be joined, nothing downstream works. That's the infra insight.",
+    followUps: ["Labels arrive 7 days late — how does that change the design?", "Which guardrail would stop a launch even if the primary metric is up?"]
+  },
+  {
+    id: "ds-6", category: "Data Scientist", difficulty: "Hard",
+    prompt: "An A/B test shows the primary metric up significantly, but a guardrail metric is down. Walk me through your analysis and recommendation.",
+    framework: "Trust checks (SRM, logging) → Segment the trade-off → Quantify net value → Recommend with conditions.",
+    strongAnswer: [
+      "Validates the test first: SRM, exposure logging, metric pipeline — before interpreting anything",
+      "Segments both effects: is the guardrail loss concentrated where the gain isn't (or in a vulnerable group)?",
+      "Puts both effects in common units where possible (revenue, retention, long-term value) and recommends ship / iterate / no-ship with reasoning"
+    ],
+    pitfalls: [
+      "'Primary is significant, ship it' — ignoring the guardrail's purpose",
+      "Treating statistical significance as business importance",
+      "No segmentation: an average trade-off may hide a segment being harmed badly"
+    ],
+    nextTime: "Frame it as an explicit trade-off with numbers, then a conditional recommendation ('ship if we accept X, because Y'). Decision-shaped answers beat analysis-shaped ones.",
+    followUps: ["How do you weigh a short-term gain against a long-term guardrail?", "The CEO wants to ship — how do you present this?"]
+  },
+  {
+    id: "ds-7", category: "Data Scientist", difficulty: "Medium",
+    prompt: "How would you detect anomalies in a high-volume infrastructure metric (e.g. latency, error rate, GPU usage)?",
+    framework: "Seasonality-aware baseline → Robust thresholds → Alert quality (precision/fatigue) → Root-cause drill-downs.",
+    strongAnswer: [
+      "Models the expected pattern first: daily/weekly seasonality and trend, not a flat threshold",
+      "Uses robust statistics (medians, percentiles, MAD) so anomalies don't corrupt the baseline",
+      "Tunes for alert precision and routes alerts with segmentation (region, service, version) attached, fighting alert fatigue"
+    ],
+    pitfalls: [
+      "A static threshold on a strongly seasonal metric — false alarms every weekend",
+      "Mean/std on heavy-tailed latency data",
+      "Detecting without localizing: an alert that can't say where is noise"
+    ],
+    nextTime: "Mention p95/p99 and seasonality in the first two sentences. Infra metrics are seasonal and heavy-tailed, and your method must say so.",
+    followUps: ["Your detector fires 200 times a day — what do you change?", "Point anomaly vs a slow drift upward — same detector?"]
+  },
+  {
+    id: "ds-8", category: "Data Scientist", difficulty: "Medium",
+    prompt: "The data warehouse table your analysis depends on is slow, duplicated, and nobody trusts it. How do you fix it?",
+    framework: "Find the consumers → Define the canonical model → Test & document → Deprecate the copies.",
+    strongAnswer: [
+      "Maps who actually uses the table and for which decisions before redesigning anything",
+      "Builds one canonical, tested model (clear grain, dedup logic, documented definitions) instead of another fork",
+      "Adds data tests (uniqueness, freshness, referential checks) and an owner, then migrates consumers and deletes the duplicates"
+    ],
+    pitfalls: [
+      "Creating yet another 'clean_v2' table and adding to the sprawl",
+      "No data tests — trust decays again within a quarter",
+      "Redesigning without talking to consumers, breaking silent dependencies"
+    ],
+    nextTime: "Talk about grain and tests explicitly ('one row per X, tested daily'). Analytics-engineering fluency is what separates this answer.",
+    followUps: ["Two teams define the same metric differently — how do you resolve it?", "How do you know the new table is right?"]
+  },
+  {
+    id: "ds-9", category: "Data Scientist", difficulty: "Hard",
+    prompt: "A team peeked at their A/B test daily and stopped it the first day p < 0.05. Explain the problem and what the platform should do about it.",
+    framework: "Optional stopping inflates false positives → Quantify it → Platform fixes: sequential methods / pre-registration / fixed horizons.",
+    strongAnswer: [
+      "Explains that repeated peeking with a fixed-horizon p-value inflates the true false-positive rate far above 5%",
+      "Notes the stopped-early effect size is also biased upward (winner's curse)",
+      "Platform remedies: pre-registered sample size and end date, sequential testing (e.g. alpha-spending / always-valid p-values), or Bayesian decision rules"
+    ],
+    pitfalls: [
+      "Saying 'peeking is bad' without explaining the false-positive inflation",
+      "Suggesting willpower ('just don't peek') instead of a platform/method fix",
+      "Claiming Bonferroni on every peek is the standard answer — it wastes power vs sequential methods"
+    ],
+    nextTime: "Give the intuition with a number: peeking daily for a month can push a nominal 5% false-positive rate toward 20–30%. A concrete inflation figure sticks.",
+    followUps: ["Business wants a live dashboard anyway — what do you show?", "When is stopping early legitimate?"]
+  },
+  {
+    id: "ds-10", category: "Data Scientist", difficulty: "Medium",
+    prompt: "How do you estimate whether an infrastructure improvement (say, 200 ms faster page loads) is worth its cost?",
+    framework: "Measure latency→outcome relationship causally → Convert to business value → Compare to eng cost → Validate after launch.",
+    strongAnswer: [
+      "Estimates the effect credibly: use natural experiments, injected-delay tests, or geo/switchback variation — not just correlation between fast users and conversion",
+      "Converts the effect into business units (conversion, retention, revenue) with uncertainty ranges",
+      "Compares against the fully-loaded cost (eng time, infra spend) and plans a post-launch validation"
+    ],
+    pitfalls: [
+      "Correlating fast sessions with high conversion and calling it causal — fast users differ from slow users",
+      "A point estimate with no uncertainty",
+      "Counting infra cost but not the opportunity cost of the engineers"
+    ],
+    nextTime: "Flag the confounding trap before they ask: people with fast loads are not random. Naming that trap is the highest-value sentence in this answer.",
+    followUps: ["How would an injected-delay experiment work, ethically and technically?", "The effect is real but tiny — how do you present it?"]
+  },
+  {
+    id: "ds-11", category: "Data Scientist", difficulty: "Medium",
+    prompt: "Design a self-serve analytics dashboard for engineering teams to monitor ML system health.",
+    framework: "Users & decisions → Layered metrics (system, model, business) → Freshness & trust signals → Drill-down paths.",
+    strongAnswer: [
+      "Organizes by decision layers: system health (latency, errors), model health (score distribution, drift, freshness), business impact",
+      "Shows data freshness and pipeline status on the dashboard itself, so users know when not to trust it",
+      "Every top-level number drills down by model version, segment, and time — anomalies must be localizable in two clicks"
+    ],
+    pitfalls: [
+      "A wall of charts with no decision attached to any of them",
+      "No freshness indicator — teams act on stale data during an outage of the pipeline itself",
+      "Model quality metrics with no system metrics, or vice versa"
+    ],
+    nextTime: "For each dashboard section, name the decision it drives. If you can't, cut the section — say that principle out loud.",
+    followUps: ["Which single number goes on the front page?", "How do you stop dashboard sprawl over time?"]
+  },
+  {
+    id: "ds-12", category: "Data Scientist", difficulty: "Hard",
+    prompt: "Your training data comes from logs generated by the current production model. What biases does that create and how do you handle them?",
+    framework: "Selection/feedback bias → Position & exposure bias → Corrections: exploration, propensity weighting, counterfactual eval.",
+    strongAnswer: [
+      "Names the core problem: you only observe outcomes for items the old model chose to show (selection bias / feedback loop)",
+      "Covers exposure/position bias in logged interactions and delayed, censored labels",
+      "Mitigations: a small exploration/randomized traffic slice, propensity logging with inverse-propensity weighting, counterfactual/off-policy evaluation before training on logs naively"
+    ],
+    pitfalls: [
+      "Training on logged data as if it were a random sample",
+      "No propensity or model-version logging, making correction impossible later",
+      "Evaluating the new model on the same biased logs and declaring victory"
+    ],
+    nextTime: "Say 'we only see outcomes where the old policy acted' in plain words first, then name the fixes. That sentence is the whole concept; everything else is technique.",
+    followUps: ["How much traffic do you sacrifice to exploration, and why that much?", "Offline counterfactual eval and the A/B test disagree — next step?"]
+  },
+
+  // ---------- ML Infrastructure (domain area) ----------
+  {
+    id: "infra-1", category: "ML Infrastructure", difficulty: "Hard",
+    prompt: "Design an ML platform that lets 50 data scientists train, evaluate, and ship models without filing infra tickets.",
+    framework: "Self-serve layers: compute → training → registry → serving → observability, with paved paths and escape hatches.",
+    strongAnswer: [
+      "Layers the platform: managed compute/notebooks, a training service (submit a job, get resources), model registry, one-click serving, built-in monitoring",
+      "Paved-path philosophy: the easy path is the correct path (versioning, logging, eval gates are defaults, not homework)",
+      "Balances standardization with escape hatches for advanced users, plus cost visibility per team/job"
+    ],
+    pitfalls: [
+      "Building a monolith UI nobody asked for instead of APIs/CLI jobs scientists actually use",
+      "Self-serve with no guardrails: unversioned models in production within a month",
+      "Ignoring adoption — a platform the scientists route around is shelfware"
+    ],
+    nextTime: "Anchor on one user journey end-to-end ('a scientist ships a model Tuesday without a ticket') and design backwards from it.",
+    followUps: ["How do you measure whether the platform is succeeding?", "Build vs buy for the training layer — your call?"]
+  },
+  {
+    id: "infra-2", category: "ML Infrastructure", difficulty: "Hard",
+    prompt: "Design a scheduling system for a shared GPU cluster used by training, experimentation, and production inference.",
+    framework: "Workload classes & priorities → Resource accounting → Preemption & fairness → Utilization vs latency trade-offs.",
+    strongAnswer: [
+      "Separates workload classes with different guarantees: production inference (reserved, latency-critical) vs training (preemptible, throughput-oriented)",
+      "Uses quotas/fair-sharing per team, with borrowing of idle capacity and preemption that checkpoints rather than kills",
+      "Tracks both allocation and real utilization, and charges back/showbacks cost to drive good behavior"
+    ],
+    pitfalls: [
+      "First-come-first-served for everything — production starved by a training job",
+      "Preempting training without checkpointing, burning days of compute",
+      "Optimizing utilization to 100% and destroying queue latency for everyone"
+    ],
+    nextTime: "State the central trade-off explicitly: utilization vs responsiveness. Every scheduler design is a position on that line — name yours.",
+    followUps: ["A team's deadline job can't get GPUs — what's the escalation path?", "Spot/preemptible capacity — where does it fit?"]
+  },
+  {
+    id: "infra-3", category: "ML Infrastructure", difficulty: "Medium",
+    prompt: "How do you design data pipelines that feed training so they are reliable, testable, and backfillable?",
+    framework: "Declarative pipelines → Idempotency & partitioning → Data contracts/tests → Backfill by partition.",
+    strongAnswer: [
+      "Partitioned, idempotent jobs (rerunning a day's partition gives the same result, no duplicates)",
+      "Data contracts and tests at each stage: schema, freshness, volume, distribution checks that fail the pipeline loudly",
+      "Backfills as a first-class operation: recompute any historical range with the new logic, with lineage tracking what changed"
+    ],
+    pitfalls: [
+      "Pipelines that append duplicates on every retry",
+      "Silent partial failures — training runs on half a day of data and nobody knows",
+      "Backfill requiring a hero with a laptop and a prayer"
+    ],
+    nextTime: "Say 'idempotent and partition-based' in your first breath, then give the duplicate-on-retry horror story it prevents.",
+    followUps: ["A source table changes schema at 3 a.m. — what happens?", "How do you test a pipeline change before it touches production data?"]
+  },
+  {
+    id: "infra-4", category: "ML Infrastructure", difficulty: "Hard",
+    prompt: "Design an online inference platform that many teams deploy models to, with very different latency needs.",
+    framework: "Standard serving contract → Placement (CPU/GPU, region) → Autoscaling → Per-model SLOs & isolation.",
+    strongAnswer: [
+      "One deployment contract (model artifact + config: resources, latency SLO, scaling policy) regardless of framework",
+      "Autoscaling on the right signal (queue depth / concurrency, not just CPU), with cold-start management for spiky models",
+      "Isolation so one team's runaway model can't starve others: per-model quotas, rate limits, and separate pools for strict-SLO models"
+    ],
+    pitfalls: [
+      "Every team hand-rolling its own serving stack — no shared monitoring or rollback",
+      "Autoscaling on CPU for GPU inference",
+      "Noisy-neighbor blindness in a multi-tenant design"
+    ],
+    nextTime: "Make the deployment contract the hero of the answer: what the team provides, what the platform guarantees. Contracts are what platforms are.",
+    followUps: ["A model needs 10 ms and another tolerates 2 s — same platform, really?", "How do you roll back one model in seconds?"]
+  },
+  {
+    id: "infra-5", category: "ML Infrastructure", difficulty: "Medium",
+    prompt: "What observability do you build for ML systems beyond standard service monitoring?",
+    framework: "System metrics → Data metrics → Model metrics → Business metrics, all joinable by model version.",
+    strongAnswer: [
+      "Adds ML-specific signals: input distribution drift, feature freshness/null rates, prediction distribution, score percentiles",
+      "Delayed ground-truth tracking: quality metrics computed as labels arrive, sliced by segment and model version",
+      "Everything keyed by model version and feature version, so an incident can be attributed to a deploy, a data change, or the world changing"
+    ],
+    pitfalls: [
+      "Only uptime/latency monitoring — the service is healthy while the model quietly rots",
+      "Drift alerts with no baseline or threshold logic — alert fatigue by week two",
+      "Quality metrics that can't be sliced by version, so rollbacks are guesswork"
+    ],
+    nextTime: "Use the line: 'For ML, 200 OK is not healthy.' Then list the three layers (data, model, business) that must be green instead.",
+    followUps: ["Which drift metric and threshold do you actually use?", "Ground truth arrives after 30 days — what do you watch meanwhile?"]
+  },
+  {
+    id: "infra-6", category: "ML Infrastructure", difficulty: "Medium",
+    prompt: "How do you manage model and data versioning together so a production incident can be rolled back and explained?",
+    framework: "Immutable artifacts → Versioned data snapshots → Lineage graph → One-command rollback.",
+    strongAnswer: [
+      "Models, code, config, and training-data snapshots are immutable and content-addressed — a version means one exact thing forever",
+      "A lineage record links each deployed model to its training run, data snapshot, features, and evaluation results",
+      "Rollback is redeploying a previous immutable artifact (never retraining under pressure), tested regularly, not improvised during an incident"
+    ],
+    pitfalls: [
+      "Mutable 'latest' pointers everywhere, so yesterday's model can't be reconstructed",
+      "Versioning the model file but not the data or feature code",
+      "A rollback path that exists on paper and has never been run"
+    ],
+    nextTime: "Ask yourself the incident question — 'what exactly was live at 2 p.m. Tuesday?' — and make every design choice answer it.",
+    followUps: ["Data versioning for a 10 TB dataset — snapshots of what, concretely?", "Who is allowed to roll back, and how fast?"]
+  },
+  {
+    id: "infra-7", category: "ML Infrastructure", difficulty: "Hard",
+    prompt: "Design a streaming feature pipeline that keeps online features fresh within seconds, consistent with batch training features.",
+    framework: "One transformation definition → Stream + batch execution → Store & serve → Consistency checks.",
+    strongAnswer: [
+      "Feature logic defined once and executed by both streaming and batch paths (Lambda/Kappa or unified-engine thinking), avoiding two implementations",
+      "Streaming stack handles late/out-of-order events with watermarks and corrects aggregates when late data lands",
+      "Continuous consistency validation comparing streaming features against batch recomputation, alerting on divergence"
+    ],
+    pitfalls: [
+      "Hand-maintained duplicate logic in SQL for batch and a streaming job for online — skew by design",
+      "Ignoring late events: aggregates silently wrong for exactly the users who matter",
+      "Freshness with no correctness check — fast and wrong"
+    ],
+    nextTime: "Name the enemy early: two implementations. Then every design choice is about keeping one definition of truth with two execution speeds.",
+    followUps: ["How fresh is fresh enough — how do you decide?", "A late event changes a feature used in a prediction an hour ago — what then?"]
+  },
+  {
+    id: "infra-8", category: "ML Infrastructure", difficulty: "Medium",
+    prompt: "ML infrastructure costs are doubling every year. How do you get them under control without slowing teams down?",
+    framework: "Visibility (cost per job/team/model) → Waste removal → Efficiency levers → Governance that doesn't block.",
+    strongAnswer: [
+      "Starts with attribution: cost per training job, per model in production, per team — most waste is invisible until measured",
+      "Removes pure waste first: idle reservations, zombie jobs/models, over-provisioned inference, redundant retraining",
+      "Efficiency levers with owners: spot capacity, right-sizing, shared serving, caching — plus budgets/quotas set with teams, not against them"
+    ],
+    pitfalls: [
+      "Across-the-board cuts that hit the most valuable workloads equally",
+      "Counting infra spend but not the engineer-time cost of slow, cheap systems",
+      "A finance exercise with no per-unit economics (cost per prediction, per training run)"
+    ],
+    nextTime: "Quote unit costs, not totals: 'cost per 1k predictions' and 'cost per experiment'. Unit economics turns a cost argument into an engineering plan.",
+    followUps: ["Which model in production costs the most per prediction — how would you know?", "A team resists quotas — how do you handle it?"]
+  },
+  {
+    id: "infra-9", category: "ML Infrastructure", difficulty: "Hard",
+    prompt: "How do you safely test infrastructure changes (a new serving runtime, a Kubernetes upgrade) for ML workloads?",
+    framework: "Representative benchmarks → Shadow/canary with real traffic → ML-specific validation → Gradual rollout with rollback.",
+    strongAnswer: [
+      "Benchmarks with production-representative models and traffic shapes, comparing latency percentiles and output equivalence, not just 'it runs'",
+      "Shadow traffic to compare old vs new outputs on identical inputs — for ML, numerical differences matter, not only errors",
+      "Canary by model/team with automatic rollback on latency, error, or prediction-distribution shifts"
+    ],
+    pitfalls: [
+      "Testing with a toy model and declaring the runtime equivalent",
+      "Checking only errors/latency — missing silent numerical output changes from a library upgrade",
+      "Big-bang migration of all models at once"
+    ],
+    nextTime: "Add the ML twist to a standard infra answer: output equivalence. 'Same inputs, same predictions (within tolerance)' is the test generic infra answers miss.",
+    followUps: ["Outputs differ by 0.1% after the upgrade — ship or block?", "Which models do you canary first, and why those?"]
+  },
+  {
+    id: "infra-10", category: "ML Infrastructure", difficulty: "Medium",
+    prompt: "Design CI/CD for machine learning models — what is tested, and what blocks a release?",
+    framework: "Code tests → Data tests → Model tests (quality, slices, fairness/safety) → Deploy tests (latency, load) → Progressive release.",
+    strongAnswer: [
+      "Tests all three artifacts: code (unit/integration), data (schema, ranges, leakage checks), and the model itself (quality gates vs the current production model)",
+      "Slice-based gates: a candidate that wins on average but fails a critical segment is blocked",
+      "Release includes serving tests (latency/load on production-like infra) and an automatic canary with rollback criteria"
+    ],
+    pitfalls: [
+      "CI that only runs code tests and ships any model the training script emits",
+      "A single global quality threshold with no slice checks",
+      "Manual, undocumented release steps — no two releases happen the same way"
+    ],
+    nextTime: "Say 'CI/CD for ML tests data and models, not just code' as your opening line, then enumerate the gates. That framing is the interviewer's rubric.",
+    followUps: ["A candidate beats production overall but loses on a small segment — block or ship?", "How do you test a model whose labels take a month to arrive?"]
+  },
+  {
+    id: "infra-11", category: "ML Infrastructure", difficulty: "Medium",
+    prompt: "How do you handle secrets, privacy, and compliance in ML pipelines that train on user data?",
+    framework: "Data classification → Access control & minimization → De-identification → Audit & retention.",
+    strongAnswer: [
+      "Classifies training data by sensitivity and enforces least-privilege access — pipelines run under scoped service accounts, not personal credentials",
+      "Minimization and de-identification before training where possible (drop/tokenize identifiers), with stricter handling for regulated data",
+      "Audit logs of who/what accessed which data, plus retention and deletion that propagates to training sets, features, and backups"
+    ],
+    pitfalls: [
+      "Engineers training from raw production dumps on laptops",
+      "Deleting a user from the product database but not from training data and feature stores",
+      "No audit trail — compliance questions are unanswerable"
+    ],
+    nextTime: "Follow one user record through the whole system in your answer (product DB → pipeline → feature store → model). Deletion and access must work at every hop you name.",
+    followUps: ["A model memorized sensitive training data — what's your response?", "How do you give scientists enough access to be productive, safely?"]
+  },
+  {
+    id: "infra-12", category: "ML Infrastructure", difficulty: "Hard",
+    prompt: "A critical model's training pipeline starts failing intermittently at 2 a.m. and retraining is stale by morning. Diagnose and fix the system, not just the incident.",
+    framework: "Stabilize (fallback model/data) → Find the flaky layer → Eliminate the failure class → SLOs & ownership.",
+    strongAnswer: [
+      "Stabilizes first: serve the last good model, freeze risky auto-retrains, page the right owner — users before root cause",
+      "Localizes the intermittency with evidence: upstream schema/volume changes, resource contention at that hour, flaky dependencies, retry/duplication bugs",
+      "Fixes the class, not the instance: data contracts, idempotent retries, freshness SLOs with alerts before staleness hurts, and a runbook/on-call that owns the pipeline like a product service"
+    ],
+    pitfalls: [
+      "Restarting the job every night and calling it resolved",
+      "No freshness SLO — 'stale model' is discovered by users, not monitors",
+      "Treating pipelines as scripts nobody owns, unlike 'real' services"
+    ],
+    nextTime: "Split your answer into tonight vs this quarter: stabilize, then reliability work. Interviewers for infra roles are listening for exactly that split.",
+    followUps: ["What freshness SLO do you set, and what alert precedes a breach?", "How do you decide which pipelines deserve an on-call?"]
   }
 ];

@@ -3,12 +3,18 @@
 Interview prep app — practice behavioral, technical, and general interview
 questions with structured frameworks, timed answers, and honest self-scoring.
 
-## What this is (v1)
+**Specialization (v1.1): MLE and Data Scientist interviews, with ML
+infrastructure as the domain area** — distributed training, model serving,
+feature stores, GPU clusters, experimentation platforms, metrics/logging
+pipelines, and ML platform design.
+
+## What this is
 
 A no-build, no-login static web app. Open it and practice:
 
-- **Question bank** — 24 questions across 4 categories
-  (About You, Behavioral, Problem Solving, Coding & Technical),
+- **Question bank** — 60 questions across 7 categories
+  (About You, Behavioral, Problem Solving, Coding & Technical,
+  plus 12 each for **MLE**, **Data Scientist**, and **ML Infrastructure**),
   each with a difficulty level and follow-up questions.
 - **A framework for every question** — STAR, "Past / Present / Future",
   "Clarify → Plan → Code → Test", and more, so an answer has a shape
