@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interview Prep — Practice That Sticks</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1>Interview Prep</h1>
+    <p class="tagline">Practice first. Guidance second. Every answer editable, every score honest.</p>
+  </div>
+  <div class="progress-box" aria-live="polite">
+    <strong id="progress-count">0 / 24 practiced</strong>
+    <div class="progress-track"><div id="progress-bar" class="progress-fill"></div></div>
+  </div>
+</header>
+
+<nav class="controls" aria-label="Question controls">
+  <label>Category
+    <select id="filter-category">
+      <option value="all">All categories</option>
+      <option>About You</option>
+      <option>Behavioral</option>
+      <option>Problem Solving</option>
+      <option>Coding &amp; Technical</option>
+    </select>
+  </label>
+  <label>Difficulty
+    <select id="filter-difficulty">
+      <option value="all">All levels</option>
+      <option>Easy</option>
+      <option>Medium</option>
+      <option>Hard</option>
+    </select>
+  </label>
+  <label class="search-label">Search
+    <input id="search" type="search" placeholder="e.g. conflict, deadline, debug">
+  </label>
+  <button id="btn-random" type="button">🎲 Random question</button>
+  <button id="btn-mock" type="button" class="primary">▶ Start mock interview (5)</button>
+</nav>
+
+<div id="mock-banner" class="mock-banner" hidden>
+  <span id="mock-status">Mock interview</span>
+  <button id="btn-mock-next" type="button">Next question →</button>
+  <button id="btn-mock-end" type="button">End mock</button>
+</div>
+
+<main>
+  <section id="question-list" class="question-list" aria-label="Questions"></section>
+  <p id="empty-state" class="empty" hidden>No questions match those filters. Try widening them.</p>
+</main>
+
+<template id="card-template">
+  <article class="card">
+    <div class="card-head">
+      <span class="chip category"></span>
+      <span class="chip difficulty"></span>
+      <span class="done-badge" hidden>✓ Practiced</span>
+    </div>
+    <h2 class="prompt"></h2>
+    <p class="framework"></p>
+
+    <div class="timer-row">
+      <span class="timer" aria-live="polite">2:00</span>
+      <button type="button" class="btn-timer-start">Start 2-min timer</button>
+      <button type="button" class="btn-timer-reset">Reset</button>
+    </div>
+
+    <label class="answer-label">Your answer (draft it here — it stays editable)
+      <textarea class="answer" rows="6" placeholder="Structure it with the framework above. Specific examples beat general claims."></textarea>
+    </label>
+
+    <div class="card-actions">
+      <button type="button" class="btn-reveal">Show guidance</button>
+      <button type="button" class="btn-save">Save answer &amp; score</button>
+    </div>
+
+    <div class="guidance" hidden>
+      <h3>What a strong answer includes</h3>
+      <ul class="strong"></ul>
+      <h3>Common pitfalls</h3>
+      <ul class="pitfalls"></ul>
+      <p class="next-time"><strong>Next time:</strong> <span></span></p>
+      <h3>Likely follow-ups</h3>
+      <ul class="followups"></ul>
+    </div>
+
+    <fieldset class="rubric">
+      <legend>Self-score (1 = shaky, 5 = interview-ready)</legend>
+      <label>Structure <input type="range" min="1" max="5" step="1" value="3" class="score-structure"> <output>3</output></label>
+      <label>Specific examples <input type="range" min="1" max="5" step="1" value="3" class="score-examples"> <output>3</output></label>
+      <label>Clarity <input type="range" min="1" max="5" step="1" value="3" class="score-clarity"> <output>3</output></label>
+    </fieldset>
+  </article>
+</template>
+
+<footer>
+  <p>Progress is saved only in this browser. Clear it any time with the button below.</p>
+  <button id="btn-reset-progress" type="button">Reset all progress</button>
+</footer>
+
+<script src="js/questions.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
