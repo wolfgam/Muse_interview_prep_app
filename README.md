@@ -22,6 +22,17 @@ A no-build, no-login static web app. Open it and practice:
 - **Guidance on reveal** — what a strong answer includes, the common
   pitfalls that weaken it, and a "next time" tip. Guidance stays hidden
   until you have written your own answer, so you practice first.
+- **Voice input (v1.2)** — tap 🎤 *Speak answer* and dictate; your speech
+  is transcribed into the answer box (Web Speech API, best in Chrome /
+  Edge; Safari 14.1+ on Apple devices). Tap again to stop — the text
+  stays editable either way.
+- **Automatic feedback (v1.2)** — *Check my answer* (also shown when you
+  save) analyzes your answer **on your device**: speaking length,
+  whether you used a concrete metric, a specific example, first-person
+  ownership, structure coverage (situation / task / action / result),
+  filler-word load, and how many of the question's key guidance points
+  your answer covers — including which ones you're missing. It's
+  rule-based, not an AI grader: it can't judge truth or reasoning.
 - **Timed practice** — 2-minute answer timer per question.
 - **Self-scoring rubric** — rate Structure, Specific examples, and
   Clarity from 1–5 after each attempt. Answers stay editable, so you

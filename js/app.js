@@ -10,6 +10,7 @@
     progress: loadProgress(), // { [id]: { answer, scores:{structure,examples,clarity}, practiced } }
     mock: null,               // { queue: [ids], index: number }
     timers: new Map(),        // id -> interval id
+    recognitions: new Map(),  // id -> active SpeechRecognition
   };
 
   const listEl = document.getElementById("question-list");
@@ -70,9 +71,11 @@
   }
 
   function render() {
-    // stop any running timers when cards are rebuilt
+    // stop any running timers / dictation when cards are rebuilt
     state.timers.forEach(id => clearInterval(id));
     state.timers.clear();
+    state.recognitions.forEach(rec => { try { rec.stop(); } catch { /* already stopped */ } });
+    state.recognitions.clear();
 
     listEl.innerHTML = "";
     const qs = visibleQuestions();
@@ -95,6 +98,79 @@
         p.answer = answerEl.value;
         saveProgress();
       });
+
+      // ----- voice input (Web Speech API, browser-provided) -----
+      const micBtn = node.querySelector(".btn-mic");
+      const micStatus = node.querySelector(".mic-status");
+      const showMicStatus = (msg, isError) => {
+        micStatus.hidden = !msg;
+        micStatus.textContent = msg || "";
+        micStatus.classList.toggle("error", !!isError);
+      };
+      micBtn.addEventListener("click", () => {
+        const active = state.recognitions.get(q.id);
+        if (active) { active.stop(); return; }
+        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SR) {
+          showMicStatus("Voice input isn't supported in this browser. It works in Chrome and Edge (and Safari 14.1+ on Apple devices) — typing works everywhere.", true);
+          return;
+        }
+        const rec = new SR();
+        rec.lang = "en-US";
+        rec.continuous = true;
+        rec.interimResults = true;
+        const base = answerEl.value ? answerEl.value.replace(/\s*$/, "") + " " : "";
+        let finalText = "";
+        rec.onresult = (event) => {
+          let interim = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const chunk = event.results[i][0].transcript;
+            if (event.results[i].isFinal) finalText += chunk + " ";
+            else interim += chunk;
+          }
+          answerEl.value = base + finalText + interim;
+          const p = (state.progress[q.id] ||= {});
+          p.answer = answerEl.value;
+          saveProgress();
+        };
+        rec.onerror = (event) => {
+          if (event.error === "not-allowed" || event.error === "service-not-allowed")
+            showMicStatus("Microphone access was blocked. Allow mic permission for this site in your browser, then tap Speak again.", true);
+          else if (event.error !== "aborted" && event.error !== "no-speech")
+            showMicStatus("Voice input hit a problem (" + event.error + "). Your text so far is saved — you can keep typing.", true);
+        };
+        rec.onend = () => {
+          state.recognitions.delete(q.id);
+          micBtn.classList.remove("recording");
+          micBtn.textContent = "🎤 Speak answer";
+          if (micStatus.textContent.startsWith("Listening")) showMicStatus("Dictation stopped. Your answer above is saved as you go — edit it freely, then Check my answer.", false);
+        };
+        try {
+          rec.start();
+          state.recognitions.set(q.id, rec);
+          micBtn.classList.add("recording");
+          micBtn.textContent = "⏹ Stop dictation";
+          showMicStatus("Listening… speak your answer, then tap Stop. (In Chrome, speech is transcribed by your browser's speech service; the text itself is stored only in this browser.)", false);
+        } catch {
+          showMicStatus("Couldn't start voice input — if it's already running in another card, stop it first.", true);
+        }
+      });
+
+      // ----- automatic feedback -----
+      const feedbackBox = node.querySelector(".feedback");
+      const runFeedback = () => {
+        const r = analyzeAnswer(q, answerEl.value);
+        feedbackBox.querySelector(".feedback-summary").textContent = r.summary;
+        const sList = feedbackBox.querySelector(".feedback-strengths");
+        const iList = feedbackBox.querySelector(".feedback-improvements");
+        fillList(sList, r.strengths.length ? r.strengths : ["Nothing flagged yet — a longer, more specific answer will surface more strengths."]);
+        fillList(iList, r.improvements.length ? r.improvements : ["Nothing flagged — now compare against the guidance below and score yourself honestly."]);
+        const missWrap = feedbackBox.querySelector(".feedback-missing-wrap");
+        missWrap.hidden = r.missingPoints.length === 0;
+        fillList(feedbackBox.querySelector(".feedback-missing"), r.missingPoints);
+        feedbackBox.hidden = false;
+      };
+      node.querySelector(".btn-feedback").addEventListener("click", runFeedback);
 
       const guidance = node.querySelector(".guidance");
       fillList(node.querySelector(".strong"), q.strongAnswer);
@@ -126,7 +202,9 @@
         };
         p.practiced = true;
         saveProgress();
-        render();
+        runFeedback(); // saving an answer surfaces its automatic feedback in place
+        node.querySelector(".done-badge").hidden = false;
+        renderProgress();
       });
 
       // timer
